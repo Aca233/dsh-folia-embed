@@ -18,9 +18,23 @@
     "icon.svg",
     "cordis.patch.yml",
     "README.md",
-    "INSTALL.md"
+    "INSTALL.md",
+    "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aca233/dsh-folia-embed.git"
+  },
+  "homepage": "https://github.com/Aca233/dsh-folia-embed#readme",
+  "bugs": {
+    "url": "https://github.com/Aca233/dsh-folia-embed/issues"
+  },
+  "author": "Aca233",
   "license": "MIT",
+  "scripts": {
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "prepublishOnly": "node scripts/check-secrets.mjs"
+  },
   "keywords": [
     "dsh",
     "dsh-plugin",
