@@ -166,7 +166,10 @@ window.__ModuleLoader__.load({
         const response = await fetch('/folia-bg/launch', { method: 'POST' })
         const data = await response.json().catch(() => ({}))
         if (!response.ok || data.ok !== true) {
-          setStatus({ reason: data.error === 'not-installed' ? 'not-installed' : 'launch-failed', url: null })
+          const reason = data.error === 'not-installed' ? 'not-installed'
+            : data.error === 'unsupported-platform' ? 'unsupported-platform'
+              : 'launch-failed'
+          setStatus({ reason, url: null })
           return
         }
         setStatus({ running: true, reason: 'starting' })
@@ -845,6 +848,8 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       off: '已关闭',
       reasonHost: 'DSH Host 侧接口不可用',
       reasonHostHint: '插件 Host 半侧未加载，请重启 DeepSeek Harness。',
+      unsupportedPlatform: '本插件只支持 Windows：状态检测读的是 %APPDATA%，播放控制走 Windows 的系统媒体会话（SMTC）。当前系统上背景与控制都不可用。',
+      pillUnsupported: 'Folia 背景：当前系统不支持',
       pillOff: 'Folia 背景已关闭',
       pillWait: 'Folia 背景等待中',
       pillLive: 'Folia 背景运行中',
@@ -991,6 +996,8 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       off: 'Off',
       reasonHost: 'DSH Host route unavailable',
       reasonHostHint: 'The Host half is not loaded; restart DeepSeek Harness.',
+      unsupportedPlatform: 'This plugin supports Windows only: status detection reads %APPDATA%, and playback control goes through the Windows system media session (SMTC). Neither works on this platform.',
+      pillUnsupported: 'Folia background: unsupported platform',
       pillOff: 'Folia background off',
       pillWait: 'Folia background waiting',
       pillLive: 'Folia background running',
@@ -1155,9 +1162,14 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       }
 
       const hostBroken = live.reason === 'host-unreachable' || live.reason === 'host-error'
+      /* 非 Windows 上「未检测到 Folia」会把人引去翻安装步骤，而那一步做了也没用。
+         这里单独说清楚是平台不支持。 */
+      const unsupported = live.reason === 'unsupported-platform'
       const statusLines = []
       if (hostBroken) {
         statusLines.push(h('div', { key: 'host', className: 'dfe-hint' }, `${t('reasonHost')} · ${t('reasonHostHint')}`))
+      } else if (unsupported) {
+        statusLines.push(h('div', { key: 'platform', className: 'dfe-hint' }, t('unsupportedPlatform')))
       } else {
         statusLines.push(h(StatusBadge, { key: 'installed', ok: live.installed, label: live.installed ? t('installed') : t('notInstalled') }))
         if (!live.installed) statusLines.push(h('div', { key: 'installed-hint', className: 'dfe-hint' }, t('notInstalledHint')))
@@ -1253,9 +1265,10 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       const state = useStore(settingsStore)
       const live = useStore(statusStore)
       if (!state.pill) return null
+      const unsupported = live.reason === 'unsupported-platform'
       const active = state.on && live.url !== null
-      const dotState = active ? 'live' : state.on ? 'wait' : undefined
-      const label = active ? t('pillLive') : state.on ? t('pillWait') : t('pillOff')
+      const dotState = unsupported ? undefined : active ? 'live' : state.on ? 'wait' : undefined
+      const label = unsupported ? t('pillUnsupported') : active ? t('pillLive') : state.on ? t('pillWait') : t('pillOff')
       return h('button', {
         type: 'button',
         className: 'dfe-pill',
@@ -1613,6 +1626,8 @@ function popIcon(scope, value) {
       useEffect(() => { setPopover(null) }, [tab])
 
       if (!state.player) return null
+      /* 非 Windows：控制走 SMTC、面板走 9223，这张卡没有一项能工作，不渲染。 */
+      if (live.reason === 'unsupported-platform') return null
 
       const song = (data && data.song) || null
       const title = song ? song.name : (track ? track.title : null)

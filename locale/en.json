@@ -44,6 +44,8 @@
   "off": "Off",
   "reasonHost": "DSH Host route unavailable",
   "reasonHostHint": "The Host half is not loaded; restart DeepSeek Harness.",
+  "unsupportedPlatform": "This plugin supports Windows only: status detection reads %APPDATA%, and playback control goes through the Windows system media session (SMTC). Neither works on this platform.",
+  "pillUnsupported": "Folia background: unsupported platform",
   "pillOff": "Folia background off",
   "pillWait": "Folia background waiting",
   "pillLive": "Folia background running"

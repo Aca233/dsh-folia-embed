@@ -31,6 +31,9 @@
   },
   "author": "Aca233",
   "license": "MIT",
+  "os": [
+    "win32"
+  ],
   "scripts": {
     "check:secrets": "node scripts/check-secrets.mjs",
     "prepublishOnly": "node scripts/check-secrets.mjs"

@@ -221,9 +221,13 @@ NSIS 卸载脚本会**问一次要不要删除用户数据**：
   folia-major --remote-debugging-port=9223 --remote-allow-origins=*
   ```
 
-  但**本插件目前只在 Windows 上验证过**：Host 半侧读的是 `%APPDATA%` /
-  `%LOCALAPPDATA%`，控制面板注入的 agent 也是按 Windows 版的 DOM 结构写的。macOS /
-  Linux 上背景与状态检测大概率能跑，面板不保证。
+  但**本插件只支持 Windows**，macOS / Linux 上装上去也不会工作：Host 半侧读的是
+  `%APPDATA%` / `%LOCALAPPDATA%`，播放控制走 Windows 的系统媒体会话（SMTC），
+  拉起 Folia 用的是 `Folia.exe`。设置页会直接显示「当前系统不支持」，播放卡也不渲染。
+
+  注意 `package.json` 里的 `os: ["win32"]` 拦不住安装：DSH 的插件管理器用 pnpm，
+  而 pnpm 不执行 `os` / `cpu` 的宿主检查（npm 才会报 `EBADPLATFORM`）。所以真正
+  的判断在插件运行时，见 `lib/index.js` 的 `SUPPORTED_PLATFORM`。
 
 ---
 

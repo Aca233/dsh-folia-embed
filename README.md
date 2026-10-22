@@ -53,6 +53,10 @@ Folia 不在就没东西可铺。
 
 ## 前置条件
 
+**只支持 Windows。** 状态检测读 `%APPDATA%` / `%LOCALAPPDATA%`，播放控制走 Windows 的
+系统媒体会话（SMTC），拉起 Folia 用的是 `Folia.exe`。macOS / Linux 上插件仍会挂载，
+但设置页直接显示「当前系统不支持」，播放卡不渲染——不会伪装成「未检测到 Folia」。
+
 从零安装原软件（下载渠道、安装、开启 OBS 源、调试端口、自检、卸载）见
 **[INSTALL.md](./INSTALL.md)**。装好之后只要确认三件事：
 

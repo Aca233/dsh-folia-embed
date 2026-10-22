@@ -44,6 +44,8 @@
   "off": "已关闭",
   "reasonHost": "DSH Host 侧接口不可用",
   "reasonHostHint": "插件 Host 半侧未加载，请重启 DeepSeek Harness。",
+  "unsupportedPlatform": "本插件只支持 Windows：状态检测读的是 %APPDATA%，播放控制走 Windows 的系统媒体会话（SMTC）。当前系统上背景与控制都不可用。",
+  "pillUnsupported": "Folia 背景：当前系统不支持",
   "pillOff": "Folia 背景已关闭",
   "pillWait": "Folia 背景等待中",
   "pillLive": "Folia 背景运行中"
