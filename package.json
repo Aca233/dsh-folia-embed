@@ -16,6 +16,7 @@
     "client.js",
     "locale/*.json",
     "icon.svg",
+    "cordis.patch.yml",
     "README.md",
     "INSTALL.md"
   ],
@@ -29,6 +30,9 @@
     "lyrics"
   ],
   "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
       "platform": "web",
       "immediately": true,

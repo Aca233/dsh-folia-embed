@@ -1,0 +1,8 @@
+# dsh bundle patch: inserts this plugin into a profile's layer stack.
+#
+# 没有这个文件，插件管理器会把包装成普通依赖（node_modules 里有、profile 里没有），
+# 重启后不会被加载。见 @deepseek-ai/dsh-plugin-manager 的 bundle 检测：
+#   dsh.bundle 未声明 → warning: installed as a plain dependency, not a profile layer
+- insert:
+    - id: folia-embed
+      name: dsh-folia-embed
