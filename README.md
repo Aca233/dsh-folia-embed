@@ -9,9 +9,12 @@ Folia 自己渲染，插件版本随 Folia 一起升级。
 
 ## 前置条件
 
+从零安装原软件（下载渠道、安装、开启 OBS 源、调试端口、自检、卸载）见
+**[INSTALL.md](./INSTALL.md)**。装好之后只要确认三件事：
+
 1. 安装并运行 Folia（Windows 安装版，默认路径
    `%LOCALAPPDATA%\Programs\Folia\Folia.exe`）。
-2. 在 Folia 里打开 **OBS 浏览器源**（默认端口 `32108`）。
+2. 在 Folia 里打开 **OBS 浏览器源**（设置 → 连接与集成 → OBS 浏览器源，默认端口 `32108`）。
    设置项落在 `%APPDATA%\Folia\config.json`：
 
    ```json
@@ -23,6 +26,10 @@ Folia 自己渲染，插件版本随 Folia 一起升级。
    ```
 
    token 不用手动抄——插件在 Host 侧读这个文件并拼好 URL。
+
+3. Folia 以 `--remote-debugging-port=9223 --remote-allow-origins=*` 启动（右下角控制面板
+   需要它）。最省事的办法是在插件设置页点「启动 Folia」；要自己双击启动，就按
+   INSTALL.md 第 5 节改快捷方式。只开背景不碰面板的话，这一步可以跳过。
 
 ## 用法
 
@@ -126,8 +133,8 @@ Folia 歌曲页右下角那块面板是 Electron 渲染进程里的普通 DOM，
 它的 Stage API（32107）和 Lyric API（32109）默认关闭且只读，OBS 源页（32108）
 是纯展示页，不带任何控制按钮。
 
-真正的通道是 **CDP**：Folia 的快捷方式自带
-`--remote-debugging-port=9223 --remote-allow-origins=*`，Host 侧连上去，
+真正的通道是 **CDP**：Folia 以
+`--remote-debugging-port=9223 --remote-allow-origins=*` 启动时，Host 侧连上去，
 在页面里注入一段 agent，由它顺着 React fiber 找到面板自己的
 `model.panelProps`（恰好 `playback / queue / library / account` 四个键），
 读状态、调它自己的回调。面板上的每个按钮都走这条路径，所以行为和 Folia 里

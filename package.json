@@ -1,6 +1,6 @@
 {
   "name": "dsh-folia-embed",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "把本机已安装的 Folia 的歌词舞台作为 DeepSeek Harness 的窗口背景：直接复用 Folia 自带的 OBS 浏览器源，不重画歌词动效",
   "type": "module",
   "main": "lib/index.js",
@@ -16,7 +16,8 @@
     "client.js",
     "locale/*.json",
     "icon.svg",
-    "README.md"
+    "README.md",
+    "INSTALL.md"
   ],
   "license": "MIT",
   "keywords": [

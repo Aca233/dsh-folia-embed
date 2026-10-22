@@ -30,7 +30,7 @@
   "status": "状态",
   "installed": "已安装 Folia",
   "notInstalled": "未检测到 Folia",
-  "notInstalledHint": "请先安装 Folia（github.com/chthollyphile/folia-major）。本插件不内置任何渲染器。",
+  "notInstalledHint": "请先安装 Folia（github.com/chthollyphile/folia-major），步骤见仓库里的 INSTALL.md。本插件不内置任何渲染器。",
   "running": "Folia 正在运行",
   "notRunning": "Folia 未运行",
   "notRunningHint": "点「启动 Folia」，或自己从开始菜单打开。",

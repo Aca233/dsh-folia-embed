@@ -30,7 +30,7 @@
   "status": "Status",
   "installed": "Folia installed",
   "notInstalled": "Folia not found",
-  "notInstalledHint": "Install Folia first (github.com/chthollyphile/folia-major). This plugin ships no renderer of its own.",
+  "notInstalledHint": "Install Folia first (github.com/chthollyphile/folia-major); see INSTALL.md in the repo. This plugin ships no renderer of its own.",
   "running": "Folia is running",
   "notRunning": "Folia is not running",
   "notRunningHint": "Press \"Launch Folia\", or start it yourself from the Start menu.",
