@@ -7,6 +7,46 @@
 底色改成透明，让它在后面透出来。歌词滚动、可视化、主题、字体、封面配色全部由
 Folia 自己渲染，插件版本随 Folia 一起升级。
 
+## 安装
+
+**设置 → 插件 → 添加插件 → 安装第三方插件**，填：
+
+```
+github:Aca233/dsh-folia-embed
+```
+
+装完重启 DSH。插件声明了 `dsh.bundle`，所以会被写进 profile 的
+`dsh.profile.bundles` 并自动挂载，不需要手改 `cordis.patch.yml`。
+
+命令行等价写法（`dsh` 不在 PATH 时用 DSH 自带的那份）：
+
+```bash
+dsh plugin --profile desktop add github:Aca233/dsh-folia-embed
+```
+
+从本机源码装（改代码时用，`link:` 装的是活目录）：
+
+```bash
+dsh plugin --profile desktop add link:/path/to/dsh-folia-embed
+```
+
+`github:` 走的是 `git ls-remote` + git 克隆，国内网络下常常连不上 `github.com:443`
+（报 `ERR_PNPM_GIT_RESOLVE_FAILED` / `os error 10060`）。这时换一个 GitHub 加速前缀，
+把仓库 tarball 地址包起来；插件管理器认 `.tar.gz` 结尾的 URL，会当成 tarball 装，
+同样写进 `dsh.profile.bundles`：
+
+```
+https://gh-proxy.com/https://github.com/Aca233/dsh-folia-embed/archive/refs/heads/master.tar.gz
+```
+
+`gh-proxy.com` 只是示例，任何能转发 GitHub 归档的加速前缀都行（换掉前缀即可）。
+注意 `codeload.github.com/.../tar.gz` 这种地址**不能**直接用：插件管理器只接受
+`.tgz` / `.tar.gz` 结尾的 URL，`.../tar.gz/refs/heads/master` 会被判成「不是 tarball」
+而拒绝。用 `github.com/<owner>/<repo>/archive/refs/heads/<branch>.tar.gz` 这个形式。
+
+装之前先按下面的「前置条件」把 Folia 装好并开好 OBS 浏览器源——插件本身不带渲染器，
+Folia 不在就没东西可铺。
+
 ## 前置条件
 
 从零安装原软件（下载渠道、安装、开启 OBS 源、调试端口、自检、卸载）见
@@ -201,8 +241,18 @@ Folia 画得更大更慢。
 
 ## 卸载
 
-删除 `~/.dsh/plugins/dsh-folia-embed`，移除 profile 的 `node_modules/dsh-folia-embed`
-链接，并删掉 `cordis.patch.yml` 里 `folia-embed` 那条 insert，重启 DSH。
+在 **设置 → 插件** 里移除，或在 profile 目录跑：
+
+```bash
+dsh plugin --profile desktop remove dsh-folia-embed
+```
+
+插件管理器会同时把它从 `dsh.profile.bundles` 里去掉，重启 DSH 即失效。
+
+**如果是早期手工装的**（`node_modules/dsh-folia-embed` 是指向 `~/.dsh/plugins/dsh-folia-embed`
+的软链、`cordis.patch.yml` 里有手写的 `- insert: folia-embed`），建议先删掉那条手写
+insert，再按上面的方式移除。留着不会崩——loader 按 `id` 合并，两条同名条目只会挂载
+一次——但升级后分不清是哪一层在生效。之后可以删掉插件目录和软链。
 
 ## 许可
 
