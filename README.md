@@ -9,6 +9,10 @@ Folia 自己渲染，插件版本随 Folia 一起升级。
 
 ## 安装
 
+> [!NOTE]
+> 尚未发布到 npm，所以下面第一条 `github:` 地址是首选。等包上了 npm，
+> 直接 `dsh plugin --profile desktop add dsh-folia-embed` 即可，插件市场里也能搜到。
+
 **设置 → 插件 → 添加插件 → 安装第三方插件**，填：
 
 ```
