@@ -11,7 +11,7 @@
   "dim": "Dim the stage",
   "dimHint": "Overlays black on the Folia stage so text stays readable.",
   "panel": "Panel opacity",
-  "panelHint": "Opacity of the frosted panel covering the whole UI; lower reveals more of the backdrop.",
+  "panelHint": "Opacity of the frosted panel covering the whole UI; lower reveals more of the backdrop. Cards, code blocks and the player panel follow it.",
   "blur": "Frosted blur",
   "blurHint": "Blurs the backdrop for legibility; 0 keeps the original artwork sharp and skips a full-screen resample every frame.",
   "render": "Render resolution",

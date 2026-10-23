@@ -501,7 +501,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
 /* ── 整块控制面板 ──────────────────────────────────────────────────── */
 /* 尺寸、配色、圆角、字号全部照抄 Folia 歌曲页右下角那块面板
    （st-window + --pn-glass，360px 宽、20px 圆角、12px 内边距）。 */
-.dfe-panel{position:fixed;right:14px;bottom:54px;z-index:29;width:360px;max-width:calc(100vw - 2rem);display:flex;flex-direction:column;padding:12px;border-radius:20px;background:rgba(28,28,31,.8);color:#f4f4f5;box-shadow:0 30px 80px rgb(0 0 0 / 55%),0 0 0 1px rgb(255 255 255 / 9%);backdrop-filter:blur(40px) saturate(1.3);font:400 12px/1.4 var(--dsw-font-family,system-ui);animation:dfe-in .16s ease-out;  --dfe-t2:rgb(244 244 245 / 62%);--dfe-t3:rgb(244 244 245 / 42%);--dfe-line:rgb(244 244 245 / 8%);--dfe-fill:rgb(244 244 245 / 7%);--dfe-fill2:rgb(244 244 245 / 12%);--dfe-track:rgb(244 244 245 / 17%);--dfe-raise:rgb(255 255 255 / 18%);--dfe-like:#f2607a;--dfe-knob:#ececee}
+.dfe-panel{position:fixed;right:14px;bottom:54px;z-index:29;width:360px;max-width:calc(100vw - 2rem);display:flex;flex-direction:column;padding:12px;border-radius:20px;background:var(--dfe-glass,rgb(28 28 31 / .72));color:#f4f4f5;box-shadow:0 30px 80px rgb(0 0 0 / 55%),0 0 0 1px rgb(255 255 255 / 9%);backdrop-filter:blur(40px) saturate(1.3);font:400 12px/1.4 var(--dsw-font-family,system-ui);animation:dfe-in .16s ease-out;  --dfe-t2:rgb(244 244 245 / 62%);--dfe-t3:rgb(244 244 245 / 42%);--dfe-line:rgb(244 244 245 / 8%);--dfe-fill:rgb(244 244 245 / 7%);--dfe-fill2:rgb(244 244 245 / 12%);--dfe-track:rgb(244 244 245 / 17%);--dfe-raise:rgb(255 255 255 / 18%);--dfe-like:#f2607a;--dfe-knob:#ececee}
 .dfe-panel-head{display:flex;align-items:center;gap:12px;height:48px;flex:none;min-width:0}
 .dfe-panel-cover{width:48px;height:48px;border-radius:8px;flex:none;object-fit:cover;background:var(--dfe-fill);box-shadow:inset 0 0 0 1px var(--dfe-line)}
 .dfe-panel-cover[data-empty]{display:flex;align-items:center;justify-content:center;color:var(--dfe-t2);font-size:18px}
@@ -671,6 +671,41 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       return scheme === 'dark' ? `rgb(10 11 16 / ${alpha})` : `rgb(255 255 255 / ${alpha})`
     }
 
+    /* 内置「表面」：卡片、代码块、下拉、输入框。它们原来都是不透明深灰
+       （--dsw-alias-bg-layer-* / --dsw-alias-markdown-code-block，以及几张
+       卡片头部用的 --dsw-static-neutral-850），铺在 Folia 上就是一块块灰板。
+       改成半透明后，底下已经被「磨砂模糊」处理过的画面直接透上来，等于给
+       所有内置表面统一加了一层毛玻璃。
+
+       delta 是相对层级的偏移（百分比）：2 层比 1 层实一点，代码块比卡片薄一点。
+       透明度跟「面板不透明度」滑块联动，滑到 100% 基本回到原来的实心。 */
+    function surfaceColor(percent, scheme, delta = 0) {
+      const alpha = clamp(percent / 100 * 0.54 + 0.26 + delta / 100, 0.22, 0.9)
+      return scheme === 'dark'
+        ? `rgb(22 22 26 / ${alpha.toFixed(3)})`
+        : `rgb(255 255 255 / ${clamp(alpha + 0.14, 0.36, 0.94).toFixed(3)})`
+    }
+
+    const surfacePair = (percent, delta = 0) => ({
+      light: surfaceColor(percent, 'light', delta),
+      dark: surfaceColor(percent, 'dark', delta),
+    })
+
+    /* 静态色阶是「方案无关」的：组件自己按亮暗去挑 50/100 还是 800/850
+       （body[data-ds-dark-theme] .card{--fill:var(--dsw-static-neutral-850)}）。
+       所以覆盖时必须保持这个对应关系——50/100 永远给浅色玻璃，800/850 永远给
+       深色玻璃，两种方案下取同一个值，不能让它跟着亮暗翻转。 */
+    const staticPair = (percent, scheme, delta = 0) => {
+      const value = surfaceColor(percent, scheme, delta)
+      return { light: value, dark: value }
+    }
+
+    /* 播放卡是照 Folia 面板抄的深色玻璃。原来固定 80% 不透明，压在模糊过的
+       背景上几乎等于实心；这里让它跟着同一个滑块走。 */
+    function glassColor(percent) {
+      return `rgb(28 28 31 / ${clamp(percent / 100 * 0.56 + 0.32, 0.32, 0.9).toFixed(3)})`
+    }
+
     function currentScheme() {
       return document.body.hasAttribute('data-ds-dark-theme') ? 'dark' : 'light'
     }
@@ -704,7 +739,16 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       }
 
       /* 侧栏 / 窗口标题栏用半透明色而不是全透明：背景再花，导航文字也压得住。
-         面板滑块或亮暗主题变化时才重新注册，避免每次轮询都重写 token。 */
+         面板滑块或亮暗主题变化时才重新注册，避免每次轮询都重写 token。
+
+         第二组是「内置表面」：卡片、代码块、下拉、输入框。它们原本是不透明深灰，
+         铺在 Folia 上就是一整块灰板。这些 class 名都带哈希（kuvljq_card、
+         wY20ga_body…），不能直接选中，所以改在 token 层——这是 DSH 的公开
+         扩展点，不依赖任何内部 DOM 结构。
+
+         为什么只改 token 就能有毛玻璃效果：iframe 本身已经按「磨砂模糊」滑块
+         做了 blur（--dfe-filter），所以表面变半透明后，透上来的是已经模糊过的
+         画面，不需要再叠一层 backdrop-filter（那会二次模糊并多吃一份合成开销）。 */
       const applyTheme = () => {
         const scheme = currentScheme()
         const key = `${settings.panel}:${scheme}`
@@ -717,6 +761,22 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
             light: sidebarColor(settings.panel, 'light'),
             dark: sidebarColor(settings.panel, 'dark'),
           },
+          /* 1 层 = 卡片 / 面板底；2 层 = 按钮 / 输入框。
+             不碰 3 层：它有三处被当成**前景色**用（徽标和 tooltip 的文字色是
+             background: label-primary + color: bg-layer-3），改成半透明会让
+             那些文字跟着透，得不偿失。 */
+          '--dsw-alias-bg-layer-1': surfacePair(settings.panel, 0),
+          '--dsw-alias-bg-layer-2': surfacePair(settings.panel, 2),
+          '--dsw-alias-bg-overlay': surfacePair(settings.panel, 6),
+          /* 代码块比卡片再薄一点，衬着后面的画面看更通透。 */
+          '--dsw-alias-markdown-code-block': surfacePair(settings.panel, -4),
+          /* 「已编辑 N 个文件」这类卡片头部、计划卡、日程卡直接引用了静态色阶。
+             50/100 只在亮色下被选中，800/850 只在暗色下被选中，所以各自钉死
+             成对应方案的玻璃色，不让它随亮暗翻转。 */
+          '--dsw-static-neutral-50': staticPair(settings.panel, 'light', 0),
+          '--dsw-static-neutral-100': staticPair(settings.panel, 'light', 2),
+          '--dsw-static-neutral-800': staticPair(settings.panel, 'dark', 2),
+          '--dsw-static-neutral-850': staticPair(settings.panel, 'dark', 0),
         })
       }
 
@@ -737,6 +797,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
         root.style.setProperty('--dfe-filter', state.blur > 0 ? `blur(${state.blur}px) saturate(1.1)` : 'none')
         root.style.setProperty('--dfe-zoom', state.blur > 0 ? '1.06' : '1')
         root.style.setProperty('--dfe-panel', panelColor(state.panel, currentScheme()))
+        root.style.setProperty('--dfe-glass', glassColor(state.panel))
         root.toggleAttribute('data-dfe-on', active)
 
         if (!active) {
@@ -776,6 +837,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       /* 主题切换（亮/暗）时重算面板色，并让侧栏色跟着换一套。 */
       const observer = new MutationObserver(() => {
         root.style.setProperty('--dfe-panel', panelColor(settings.panel, currentScheme()))
+        root.style.setProperty('--dfe-glass', glassColor(settings.panel))
         if (themeDispose !== null) applyTheme()
       })
       observer.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
@@ -815,7 +877,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       dim: '画面压暗',
       dimHint: '在 Folia 画面上盖一层黑色，压低亮度、保证文字可读。',
       panel: '面板不透明度',
-      panelHint: '整个界面上那层磨砂玻璃的不透明度；越低越能看见背景。',
+      panelHint: '整个界面上那层磨砂玻璃的不透明度；越低越能看见背景。卡片、代码块、播放卡也一起跟着变。',
       blur: '磨砂模糊',
       blurHint: '模糊背景，文字更清楚；调到 0 就是清晰原画。0 还能省掉每帧一次全屏重采样。',
       render: '渲染分辨率',
@@ -963,7 +1025,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       dim: 'Dim the stage',
       dimHint: 'Overlays black on the Folia stage so text stays readable.',
       panel: 'Panel opacity',
-      panelHint: 'Opacity of the frosted panel covering the whole UI; lower reveals more of the backdrop.',
+      panelHint: 'Opacity of the frosted panel covering the whole UI; lower reveals more of the backdrop. Cards, code blocks and the player panel follow it.',
       blur: 'Frosted blur',
       blurHint: 'Blurs the backdrop for legibility; 0 keeps the original artwork sharp (and skips a full-screen resample every frame).',
       render: 'Render scale',
