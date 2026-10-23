@@ -17,6 +17,7 @@
     "locale/*.json",
     "icon.svg",
     "cordis.patch.yml",
+    "docs",
     "README.md",
     "INSTALL.md",
     "LICENSE"

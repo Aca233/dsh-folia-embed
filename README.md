@@ -1,11 +1,53 @@
 # dsh-folia-embed
 
-把本机**已安装**的 [Folia](https://github.com/chthollyphile/folia-major) 的歌词舞台，作为 DeepSeek Harness 的窗口背景，并把 Folia 的播放控制搬到 DSH 右下角。
+把本机**已安装**的 [Folia](https://github.com/chthollyphile/folia-major) 歌词舞台，作为
+DeepSeek Harness 的窗口背景；再把 Folia 右下角那块播放控制面板，一比一搬进 DSH。
 
 不重画歌词。插件只做一件事：把 Folia 自带的 **OBS 浏览器源**页面
-（`http://127.0.0.1:32108/obs?obs=1&token=…`）挂到窗口最底层，然后把 DSH 的
-底色改成透明，让它在后面透出来。歌词滚动、可视化、主题、字体、封面配色全部由
-Folia 自己渲染，插件版本随 Folia 一起升级。
+（`http://127.0.0.1:32108/obs?obs=1&token=…`）挂到窗口最底层，把 DSH 的底色改成透明，
+让它从后面透上来。歌词滚动、可视化、主题、字体、封面配色全部由 Folia 自己渲染，
+插件版本随 Folia 一起升级。
+
+![深色主题下的效果](docs/showcase-dark.webp)
+
+> 截图来自一个空的演示 profile：背景是 Folia 正在播放的歌词舞台，右下角是插件搬过来的
+> 播放卡，中间的对话内容、卡片、代码块、输入框都已经改成半透明玻璃。
+
+---
+
+## 展示
+
+![浅色主题](docs/showcase-light.webp)
+
+界面里所有**原本不透明**的表面都跟着一起透明了，而不只是背景那一层：
+
+- 卡片、面板底（`--dsw-alias-bg-layer-1/2`）
+- 代码块（`--dsw-alias-markdown-code-block`）
+- 输入框卡片（`--dsw-specific-input-major`）
+- 用户消息气泡（`--dsw-specific-bubble`）
+- 「已编辑 N 个文件」这类卡片头部、计划卡、日程卡（`--dsw-static-neutral-50/100/800/850`）
+- 右下角播放卡（`--dfe-glass`）
+
+透明度全部跟「面板不透明度」滑块联动，滑到 100% 基本回到原来的实心。
+
+![设置页](docs/showcase-settings.webp)
+
+---
+
+## 功能
+
+- **歌词背景** — Folia 的 OBS 浏览器源铺满整窗，DSH 底色转透明。
+- **磨砂玻璃** — 整个界面一层可调的 `backdrop-filter` 模糊；卡片、代码块、输入框、
+  气泡、播放卡统一半透明。
+- **播放控制卡** — Folia 右下角那块面板完整搬过来：封面 / 歌词 / 控制 / 播放列表 /
+  音质五个标签页。
+- **浮动开关** — 右下角一颗胶囊，不打开设置也能一键开关背景。
+- **一键拉起** — 设置页直接「启动 Folia」，并按需带上调试端口参数。
+- **状态自检** — 实时显示是否安装 / 是否运行 / OBS 源是否开启，附「重新检测」。
+- **渲染分辨率** — 50–100%，大窗口掉帧时往下调，Folia 按更小的画布逐帧重绘。
+- **双语** — 中文 / English，跟随 DSH 语言设置。
+
+---
 
 ## 安装
 
@@ -51,6 +93,8 @@ https://gh-proxy.com/https://github.com/Aca233/dsh-folia-embed/archive/refs/head
 装之前先按下面的「前置条件」把 Folia 装好并开好 OBS 浏览器源——插件本身不带渲染器，
 Folia 不在就没东西可铺。
 
+---
+
 ## 前置条件
 
 **只支持 Windows。** 状态检测读 `%APPDATA%` / `%LOCALAPPDATA%`，播放控制走 Windows 的
@@ -78,6 +122,8 @@ Folia 不在就没东西可铺。
 3. Folia 以 `--remote-debugging-port=9223 --remote-allow-origins=*` 启动（右下角控制面板
    需要它）。最省事的办法是在插件设置页点「启动 Folia」；要自己双击启动，就按
    INSTALL.md 第 5 节改快捷方式。只开背景不碰面板的话，这一步可以跳过。
+
+---
 
 ## 用法
 
@@ -120,7 +166,7 @@ Folia 不在就没东西可铺。
 | 项 | 值 |
 | --- | --- |
 | 宽 / 圆角 / 内边距 | 360px / 20px / 12px |
-| 底色 | `rgba(28, 28, 31, .8)`，`backdrop-filter: blur(40px) saturate(1.3)` |
+| 底色 | `rgb(28 28 31 / 玻璃)`，`backdrop-filter: blur(40px) saturate(1.3)` |
 | 外阴影 | `0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.09)` |
 | 文字 | 主色 `#f4f4f5`，次级 62%，三级 42% |
 | 头部 | 48px 封面（8px 圆角）+ 14px/600 歌名 + 12px/62% 歌手 + 32px 红心 |
@@ -146,6 +192,8 @@ SVG，原样抄的。歌词样式在 Folia 里是实时画布预览（拿当前�
 `clock` 事件约 4 Hz 带播放位置）；面板上的各项状态与动作走 `/folia-bg/panel`，
 读写的都是 Folia 自己的 store，不另存一份。
 
+---
+
 ## 实现要点
 
 - **Host 半侧**（`lib/index.js`）注册七条只接受回环地址的本机路由：
@@ -165,15 +213,39 @@ SVG，原样抄的。歌词样式在 Folia 里是实时画布预览（拿当前�
   回 `Access-Control-Allow-Origin`。
 
 - **Client 半侧**（`client.js`）：
-  - `ctx.theme.overrideTokens` 把 `--dsw-alias-bg-base` 覆盖为 `transparent`，
-    把 `--dsw-specific-sidebar-fill` 覆盖为**半透明**色（`面板不透明度 + 12%`，
-    亮/暗各一份）。侧栏保持一层底色，背景再花也不会把导航文字糊掉。
+  - `ctx.theme.overrideTokens` 覆盖主题 token，而不是去改那些哈希类名。
+    同一个 token 后面挂着几十处用法，改一处等于全改。
   - body 前置一个 `position:fixed; z-index:0` 的 `#dfe-layer`，内含指向 Folia
     OBS 页的 `iframe` 与一层可调的压暗遮罩。
   - 用 `:has(>[data-shell-overlay])` 选中 frame 那一层，只画**一次**磨砂面板，
     避免多层半透明叠加。
   - 设置存 `localStorage`，状态每 4s 轮询（关闭背景且已加载后停止轮询）。
   - 播放卡按 1 s 轮询 `/folia-bg/player`；轮询结果与上一帧等价时不触发渲染。
+
+### 覆盖了哪些 token
+
+| token | 用途 |
+| --- | --- |
+| `--dsw-alias-bg-base` | 中栏 / 底栏 / 对话容器 / 侧栏底 → `transparent` |
+| `--dsw-specific-sidebar-fill` | 侧栏 → 半透明（面板不透明度 + 12%） |
+| `--dsw-alias-bg-layer-1` | 卡片 / 面板底 |
+| `--dsw-alias-bg-layer-2` | 按钮 / 输入框 |
+| `--dsw-alias-bg-overlay` | 小数字徽标 |
+| `--dsw-alias-markdown-code-block` | 代码块（比卡片再薄一层） |
+| `--dsw-specific-input-major` | 输入框卡片 / 审批 / 附件 |
+| `--dsw-specific-bubble` | 用户消息气泡 |
+| `--dsw-specific-selector` | 输入框里的 `+` 圆钮 |
+| `--dsw-static-neutral-50/100/800/850` | 卡片头部（「已编辑 N 个文件」、计划卡、日程卡） |
+
+两个必须记住的约束：
+
+1. **`--dsw-alias-bg-layer-3` 故意不覆盖**。它有三处是被当成**前景色**用的
+   （`background: label-primary; color: bg-layer-3`，徽标和 tooltip 的文字），
+   改成半透明文字会跟着透。
+2. **静态色阶是方案无关的**。组件自己按亮暗去挑 50/100 还是 800/850
+   （`body[data-ds-dark-theme] .card{--fill:var(--dsw-static-neutral-850)}`），
+   所以覆盖时必须保持这个对应关系：50/100 永远给浅色玻璃，800/850 永远给深色玻璃，
+   两种方案下取同一个值，不能让它跟着亮暗翻转。
 
 ### 控制面板怎么接上 Folia
 
@@ -190,6 +262,10 @@ Folia 歌曲页右下角那块面板是 Electron 渲染进程里的普通 DOM，
 
 只有播放位置（`clock`）走 OBS SSE —— 实测同一首歌 SMTC 报 8582 ms、
 OBS 报 42839 ms，SMTC 的时间轴不可靠。
+
+注入的 agent 带内容哈希版本号，Host 每次调用前比对，Folia 更新后 agent
+自动重注入。客户端发来的动作在 Host 侧过白名单（`PANEL_OPS`）、枚举
+（`PANEL_ENUMS`）与数值夹取后才拼进页面表达式，任意表达式注入的面为零。
 
 ### 为什么还要一条时钟中继
 
@@ -222,10 +298,6 @@ Folia 把歌词时钟发布给 OBS 浏览器源时，`currentTime` 是在自己�
    iframe 用的舞台页 `/obs?obs=1&token=…`；事件流在 `/obs/events?token=…`，
    两者只差 pathname。用错路径不会报错，只会安静地收不到任何事件。
 
-注入的 agent 带内容哈希版本号，Host 每次调用前比对，Folia 更新后 agent
-自动重注入。客户端发来的动作在 Host 侧过白名单（`PANEL_OPS`）、枚举
-（`PANEL_ENUMS`）与数值夹取后才拼进页面表达式，任意表达式注入的面为零。
-
 ### 进度条的防抖
 
 进度条不跟着 4 Hz 的 `clock` 事件直接跳，而是：
@@ -247,6 +319,8 @@ Folia 把歌词时钟发布给 OBS 浏览器源时，`currentTime` 是在自己�
 让 Folia 按更小的画布逐帧重绘。注意方向和直觉相反：布局放大 + 缩小只会让
 Folia 画得更大更慢。
 
+---
+
 ## 卸载
 
 在 **设置 → 插件** 里移除，或在 profile 目录跑：
@@ -261,6 +335,8 @@ dsh plugin --profile desktop remove dsh-folia-embed
 的软链、`cordis.patch.yml` 里有手写的 `- insert: folia-embed`），建议先删掉那条手写
 insert，再按上面的方式移除。留着不会崩——loader 按 `id` 合并，两条同名条目只会挂载
 一次——但升级后分不清是哪一层在生效。之后可以删掉插件目录和软链。
+
+---
 
 ## 许可
 
