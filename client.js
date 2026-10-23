@@ -768,6 +768,12 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
           '--dsw-alias-bg-layer-1': surfacePair(settings.panel, 0),
           '--dsw-alias-bg-layer-2': surfacePair(settings.panel, 2),
           '--dsw-alias-bg-overlay': surfacePair(settings.panel, 6),
+          /* 输入框、用户消息气泡、输入框里的圆钮走的是 --dsw-specific-* 这一组，
+             跟卡片那批不是一个来源（卡片是 alias/bg-layer-*，气泡是 specific-*）。
+             三个 token 都只当 background 用（分别 6 / 3 / 2 处），可以安全改成半透明。 */
+          '--dsw-specific-input-major': surfacePair(settings.panel, 0),
+          '--dsw-specific-bubble': surfacePair(settings.panel, 1),
+          '--dsw-specific-selector': surfacePair(settings.panel, 4),
           /* 代码块比卡片再薄一点，衬着后面的画面看更通透。 */
           '--dsw-alias-markdown-code-block': surfacePair(settings.panel, -4),
           /* 「已编辑 N 个文件」这类卡片头部、计划卡、日程卡直接引用了静态色阶。
