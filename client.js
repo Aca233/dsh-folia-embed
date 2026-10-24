@@ -109,6 +109,7 @@ window.__ModuleLoader__.load({
       installed: false,
       running: false,
       enabled: false,
+      cdp: false,
       url: null,
       reason: 'loading',
     })
@@ -132,6 +133,7 @@ window.__ModuleLoader__.load({
         && merged.installed === status.installed
         && merged.running === status.running
         && merged.enabled === status.enabled
+        && merged.cdp === status.cdp
       if (same) return
       status = merged
       for (const listener of statusListeners) listener()
@@ -149,6 +151,7 @@ window.__ModuleLoader__.load({
           installed: data.installed === true,
           running: data.running === true,
           enabled: data.enabled === true,
+          cdp: data.cdp === true,
           url: typeof data.url === 'string' && data.url ? data.url : null,
           port: data.port,
           relayPort: Number.isInteger(Number(data.relayPort)) && Number(data.relayPort) > 0
@@ -161,21 +164,24 @@ window.__ModuleLoader__.load({
       }
     }
 
-    async function launchFolia() {
+    async function launchFolia(restart = false) {
       try {
-        const response = await fetch('/folia-bg/launch', { method: 'POST' })
+        const response = await fetch(`/folia-bg/launch${restart ? '?restart=1' : ''}`, { method: 'POST' })
         const data = await response.json().catch(() => ({}))
         if (!response.ok || data.ok !== true) {
           const reason = data.error === 'not-installed' ? 'not-installed'
             : data.error === 'unsupported-platform' ? 'unsupported-platform'
-              : 'launch-failed'
+              : data.error === 'stop-failed' || data.error === 'taskkill-failed' ? 'restart-failed'
+                : data.error === 'stop-timeout' ? 'restart-timeout'
+                  : 'launch-failed'
           setStatus({ reason, url: null })
           return
         }
         setStatus({ running: true, reason: 'starting' })
+        /* 重启后端口要重新监听，多给几拍。 */
         setTimeout(refreshStatus, 1500)
-        setTimeout(refreshStatus, 4500)
-        setTimeout(refreshStatus, 9000)
+        setTimeout(refreshStatus, restart ? 6000 : 4500)
+        setTimeout(refreshStatus, restart ? 12000 : 9000)
       } catch {
         setStatus({ reason: 'host-unreachable', url: null })
       }
@@ -939,7 +945,14 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       obsOn: 'OBS 浏览器源已开启',
       obsOff: 'OBS 浏览器源未开启',
       obsOffHint: '在 Folia 设置里打开 OBS 浏览器源，端口默认 32108。',
+      cdpOff: '调试端口未开启（控制面板不可用）',
+      cdpOffHint: '右下角控制面板需要 Folia 带 --remote-debugging-port=9223 启动。Folia 有单实例锁，已经在跑时新参数不会生效——先完全退出 Folia，再点下面的按钮。',
       launch: '启动 Folia',
+      restart: '重启 Folia',
+      restarting: '重启中…',
+      restartHint: '先完全退出 Folia，再带上调试端口重新启动。当前播放会中断。',
+      restartFailed: '重启失败：没能结束正在运行的 Folia。可以手动退出它，再点「启动 Folia」。',
+      restartTimeout: '重启失败：Folia 在 6 秒内没有退出。请从任务管理器结束 Folia.exe，再点「启动 Folia」。',
       refresh: '重新检测',
       launching: '启动中…',
       on: '已开启',
@@ -1085,7 +1098,14 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       obsOn: 'OBS browser source enabled',
       obsOff: 'OBS browser source disabled',
       obsOffHint: 'Enable the OBS browser source in Folia settings (default port 32108).',
+      cdpOff: 'Debug port not open (player panel unavailable)',
+      cdpOffHint: 'The player panel needs Folia started with --remote-debugging-port=9223. Folia holds a single-instance lock, so the flag does nothing while it is already running — quit Folia completely, then press the button below.',
       launch: 'Launch Folia',
+      restart: 'Restart Folia',
+      restarting: 'Restarting…',
+      restartHint: 'Quit Folia completely, then start it again with the debug port. Playback will be interrupted.',
+      restartFailed: 'Restart failed: could not stop the running Folia. Quit it yourself, then press "Launch Folia".',
+      restartTimeout: 'Restart failed: Folia did not exit within 6 seconds. End Folia.exe from Task Manager, then press "Launch Folia".',
       refresh: 'Check again',
       launching: 'Launching…',
       on: 'On',
@@ -1246,14 +1266,20 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       const live = useStore(statusStore)
       const [busy, setBusy] = useState(false)
 
-      const launch = async () => {
+      const launch = async (restart = false) => {
         setBusy(true)
         try {
-          await launchFolia()
+          await launchFolia(restart)
         } finally {
-          setTimeout(() => setBusy(false), 1500)
+          setTimeout(() => setBusy(false), restart ? 4000 : 1500)
         }
       }
+
+      /* 重启失败要说出来。原来这几个 reason 只是写进 status，没有任何分支读它，
+         用户点了按钮只会看到 Folia 没了、没有任何解释。 */
+      const restartFailure = live.reason === 'restart-failed' ? t('restartFailed')
+        : live.reason === 'restart-timeout' ? t('restartTimeout')
+          : null
 
       const hostBroken = live.reason === 'host-unreachable' || live.reason === 'host-error'
       /* 非 Windows 上「未检测到 Folia」会把人引去翻安装步骤，而那一步做了也没用。
@@ -1271,6 +1297,15 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
         if (!live.running) statusLines.push(h('div', { key: 'running-hint', className: 'dfe-hint' }, t('notRunningHint')))
         statusLines.push(h(StatusBadge, { key: 'obs', ok: live.enabled && live.url !== null, label: live.enabled ? t('obsOn') : t('obsOff') }))
         if (!live.enabled) statusLines.push(h('div', { key: 'obs-hint', className: 'dfe-hint' }, t('obsOffHint')))
+        /* Folia 在跑、但没带调试端口：三盏灯全绿而控制面板是灰的，用户没有
+           任何线索。这一行专门说清楚，并给一个能直接解决的按钮。 */
+        if (live.running && !live.cdp) {
+          statusLines.push(h(StatusBadge, { key: 'cdp', ok: false, label: t('cdpOff') }))
+          statusLines.push(h('div', { key: 'cdp-hint', className: 'dfe-hint' }, t('cdpOffHint')))
+        }
+        if (restartFailure !== null) {
+          statusLines.push(h('div', { key: 'restart-fail', className: 'dfe-hint', role: 'status', 'aria-live': 'polite' }, restartFailure))
+        }
       }
 
       return h('div', { className: 'dfe-settings' },
@@ -1290,8 +1325,21 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
                   className: 'dfe-sbtn',
                   'data-primary': '',
                   disabled: busy,
-                  onClick: launch,
+                  onClick: () => { void launch(false) },
                 }, busy ? t('launching') : t('launch'))
+                : null,
+              /* 在跑但没开 9223：唯一有效的动作是「退出再带参数拉起」。
+                 Folia 有单实例锁，光点启动只会把旧窗口叫到前面。 */
+              !hostBroken && live.running && !live.cdp
+                ? h('button', {
+                  key: 'restart',
+                  type: 'button',
+                  className: 'dfe-sbtn',
+                  'data-primary': '',
+                  disabled: busy,
+                  title: t('restartHint'),
+                  onClick: () => { void launch(true) },
+                }, busy ? t('restarting') : t('restart'))
                 : null,
               h('button', {
                 key: 'refresh',

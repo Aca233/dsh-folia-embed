@@ -53,7 +53,7 @@ DeepSeek Harness 的窗口背景；再把 Folia 右下角那块播放控制面�
 
 > [!NOTE]
 > 尚未发布到 npm，所以下面第一条 `github:` 地址是首选。等包上了 npm，
-> 直接 `dsh plugin --profile desktop add dsh-folia-embed` 即可，插件市场里也能搜到。
+> 直接 `dsh plugin --profile web add dsh-folia-embed` 即可，插件市场里也能搜到。
 
 **设置 → 插件 → 添加插件 → 安装第三方插件**，填：
 
@@ -64,16 +64,21 @@ github:Aca233/dsh-folia-embed
 装完重启 DSH。插件声明了 `dsh.bundle`，所以会被写进 profile 的
 `dsh.profile.bundles` 并自动挂载，不需要手改 `cordis.patch.yml`。
 
-命令行等价写法（`dsh` 不在 PATH 时用 DSH 自带的那份）：
+> [!IMPORTANT]
+> **`dsh plugin --profile desktop ...` 跑不通。** `desktop` profile 由 Electron 应用
+> 独占管理，命令行会被直接拒绝：
+>
+> ```
+> error: profile "desktop" is managed exclusively by the Electron application
+> ```
+>
+> 所以桌面版**只能用界面装**（上面那一步）。命令行只对 `web` 这类自建 profile 有效。
+
+从本机源码装（改代码时用，`link:` 装的是活目录）——同样走界面，或换成非 desktop
+的 profile：
 
 ```bash
-dsh plugin --profile desktop add github:Aca233/dsh-folia-embed
-```
-
-从本机源码装（改代码时用，`link:` 装的是活目录）：
-
-```bash
-dsh plugin --profile desktop add link:/path/to/dsh-folia-embed
+dsh plugin --profile web add link:/path/to/dsh-folia-embed
 ```
 
 `github:` 走的是 `git ls-remote` + git 克隆，国内网络下常常连不上 `github.com:443`
@@ -340,11 +345,8 @@ npm test
 
 ## 卸载
 
-在 **设置 → 插件** 里移除，或在 profile 目录跑：
-
-```bash
-dsh plugin --profile desktop remove dsh-folia-embed
-```
+在 **设置 → 插件** 里移除。（桌面版的 `desktop` profile 由 Electron 独占，
+命令行 `dsh plugin --profile desktop remove` 会被拒绝；非 desktop 的 profile 才可用。）
 
 插件管理器会同时把它从 `dsh.profile.bundles` 里去掉，重启 DSH 即失效。
 
