@@ -954,13 +954,10 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       equalizer: '音频效果器',
       lyricStyle: '歌词样式',
       bgType: '背景类型',
-      transparentPlayer: '播放页透明背景',
       bgLayout: '全屏叠色',
       bgLayoutHint: '背景铺满整屏，或在半屏内做渐变。',
       bgLayoutFull: '全屏叠色',
       bgLayoutHalf: '半屏渐变',
-      bgSource: '封面',
-      bgSourceCover: '封面',
       themeSource: '主题来源',
       themeDefault: '默认',
       themeAi: 'AI 主题',
@@ -1102,13 +1099,10 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       equalizer: 'Equalizer',
       lyricStyle: 'Lyric style',
       bgType: 'Background type',
-      transparentPlayer: 'Transparent player page',
       bgLayout: 'Full-screen overlay',
       bgLayoutHint: 'Fill the whole screen, or gradient inside a half pane.',
       bgLayoutFull: 'Full overlay',
       bgLayoutHalf: 'Half pane',
-      bgSource: 'Background source',
-      bgSourceCover: 'Cover',
       themeSource: 'Theme source',
       themeDefault: 'Default',
       themeAi: 'AI theme',
@@ -2096,35 +2090,10 @@ function popIcon(scope, value) {
             onChange: (value) => { void run({ op: 'backgroundLayout', value }, { backgroundLayout: value }) },
           }),
         ),
-        /* 开关行：Folia 用的是 40×24 的胶囊开关，不是按钮。 */
-        h('div', { className: 'dfe-switchrow' },
-          h('span', null, t('transparentPlayer')),
-          h('button', {
-            type: 'button', className: 'dfe-switch',
-            'data-on': data.transparentPlayerBackground ? '' : undefined,
-            role: 'switch',
-            'aria-checked': data.transparentPlayerBackground ? 'true' : 'false',
-            'aria-label': t('transparentPlayer'),
-            onClick: () => {
-              const next = !data.transparentPlayerBackground
-              void run({ op: 'transparent', value: next }, { transparentPlayerBackground: next })
-            },
-          }),
-        ),
-        h('div', { className: 'dfe-switchrow' },
-          h('span', null, t('bgSourceCover')),
-          h('button', {
-            type: 'button', className: 'dfe-switch',
-            'data-on': data.useCoverColorBg ? '' : undefined,
-            role: 'switch',
-            'aria-checked': data.useCoverColorBg ? 'true' : 'false',
-            'aria-label': t('bgSourceCover'),
-            onClick: () => {
-              const next = !data.useCoverColorBg
-              void run({ op: 'coverColorBg', value: next }, { useCoverColorBg: next })
-            },
-          }),
-        ),
+        /* 播放页透明背景 / 封面 这两个开关不搬：
+           它们是 Folia 自己**主窗口播放页**的显示选项，管的是那个窗口里背景画不画、
+           封面要不要当取色来源。DSH 里铺的是 OBS 浏览器源（一个独立的、只画歌词的
+           页面），这两项对它没有任何影响——留在面板上只会让人以为点了有用。 */
 
         h('div', { className: 'dfe-divider' }),
 
@@ -2230,8 +2199,10 @@ function popIcon(scope, value) {
           ),
         ),
         h('div', { className: 'dfe-divider' }),
+        /* 这一行的 Seg 是 width:100% 的，标签再 flex:1 1 0% 会被挤成 0 宽、
+           竖排成一列字。所以标签用 auto 宽度 + nowrap，让 Seg 自己收缩。 */
         h('div', { style: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, padding: '6px 4px' } },
-          h('span', { style: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: '20px' } }, t('qualityTitle')),
+          h('span', { style: { flex: 'none', fontSize: 14, lineHeight: '20px', whiteSpace: 'nowrap' } }, t('qualityTitle')),
           h(Seg, {
             value: data.audioQuality,
             options: usableLevels.map((level) => ({
@@ -2243,8 +2214,8 @@ function popIcon(scope, value) {
         ),
         h('div', { className: 'dfe-panel-tip' }, t('qualityHint')),
         h('div', { className: 'dfe-divider' }),
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 12, minHeight: 44, padding: '6px 4px' } },
-          h('span', { style: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: '20px' } }, t('equalizer')),
+        h('div', { className: 'dfe-switchrow' },
+          h('span', null, t('equalizer')),
           h('button', {
             type: 'button', className: 'dfe-switch',
             'data-on': data.eqEnabled ? '' : undefined,
