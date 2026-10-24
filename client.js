@@ -647,6 +647,10 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
 .dfe-secrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:24px}
 .dfe-secrow>.dfe-sec-label{flex:none}
 .dfe-panel-tip{font-size:11px;line-height:1.55;color:var(--dfe-t3)}
+/* 面板级提示条：不参与内容区滚动，所以加一点上边距和一条细分隔线，
+   免得贴在标签栏上像内容的一部分。 */
+.dfe-notice{margin-top:8px;padding-top:8px;border-top:1px solid var(--dfe-line);color:var(--dfe-t2)}
+.dfe-notice[data-note]{color:var(--dfe-t3)}
 .dfe-panel-tip[data-note]{color:#f4f4f5}
 .dfe-empty{padding:6px 2px;font-size:12px;color:var(--dfe-t3);line-height:18px}
 .dfe-collapsed{position:fixed;right:14px;bottom:54px;z-index:29;width:48px;height:48px;border-radius:999px;border:1px solid rgb(255 255 255 / 10%);background:rgb(255 255 255 / 8%);color:#f4f4f5;cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 30px rgb(0 0 0 / 40%);backdrop-filter:blur(24px) saturate(1.3);animation:dfe-in .16s ease-out;transition:background-color .16s,scale .16s}
@@ -1038,6 +1042,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       exportDone: '歌词已导出。',
       exportFail: '导出失败：当前没有可导出的歌词。',
       matchOnlineFail: '在线匹配失败，请稍后再试。',
+      actionFail: '操作没有生效：Folia 的调试端口（9223）没有响应。',
       themeNone: '未命名主题',
       queueLoading: '正在读取播放队列…',
       qualityHint: '所选档位只在平台提供时生效；实际码率取决于账号与曲目。',
@@ -1183,6 +1188,7 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
       exportDone: 'Lyrics exported.',
       exportFail: 'Export failed: no lyrics to export.',
       matchOnlineFail: 'Online match failed; try again later.',
+      actionFail: 'That did not take effect: Folia\'s debug port (9223) is not responding.',
       themeNone: 'Untitled theme',
       queueLoading: 'Reading the queue…',
       qualityHint: 'A level applies only when the provider offers it; real bitrate depends on the account and track.',
@@ -1783,10 +1789,19 @@ function popIcon(scope, value) {
         await sendControl('seek', Math.round(target))
       }
 
-      /* 面板动作统一走这里：先乐观改本地快照（滑杆、开关立刻跟手），再下发。 */
+      /* 面板动作统一走这里：先乐观改本地快照（滑杆、开关立刻跟手），再下发。
+         下发失败必须让用户知道——乐观更新会在下一次快照（~1.5 s）被真值覆盖，
+         否则用户看到的是「勾上了又自己弹回去」，而没有任何解释。 */
       const run = (action, patch) => {
         if (patch) patchPanelData(patch)
-        return panelAction(action)
+        return panelAction(action).then((ok) => {
+          if (!ok) {
+            setNotice({ kind: 'err', text: t('actionFail') })
+            /* 立刻拉一次真值，别让乐观更新挂在那里等到下一拍。 */
+            void refreshPanel()
+          }
+          return ok
+        })
       }
 
       const onLike = () => {
@@ -2020,10 +2035,6 @@ function popIcon(scope, value) {
             ? t('gainUnavailable')
             : `${t('replayGainTrack')} ${gainTrack || '—'} · ${t('replayGainAlbum')} ${gainAlbum || t('gainUnavailable')}`),
         ),
-
-        notice !== null
-          ? h('div', { className: 'dfe-panel-tip', 'data-note': notice.kind === 'ok' ? '' : undefined }, notice.text)
-          : null,
       )
 
       /* ── 控制 ── */
@@ -2366,6 +2377,18 @@ function popIcon(scope, value) {
         ),
         h('div', { className: 'dfe-panel-line' }),
         h('div', { className: 'dfe-panel-body', role: 'tabpanel' }, body),
+        /* 提示条挂在面板这一层，不是某个标签页里：动作可能从任何一页发起
+           （封面页的收藏、控制页的开关），放在某一页里等于别处看不到。
+           role="status" + aria-live 让读屏用户也能听到，而不只是看到一行
+           4 秒后消失的小字。 */
+        notice !== null
+          ? h('div', {
+            className: 'dfe-panel-tip dfe-notice',
+            'data-note': notice.kind === 'ok' ? '' : undefined,
+            role: 'status',
+            'aria-live': 'polite',
+          }, notice.text)
+          : null,
         popoverDef !== null && popover !== null
           ? h(Popover, {
             anchor: popover,

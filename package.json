@@ -36,8 +36,9 @@
     "win32"
   ],
   "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "prepublishOnly": "node scripts/check-secrets.mjs"
+    "prepublishOnly": "node scripts/check-secrets.mjs && node --test \"test/*.test.mjs\""
   },
   "keywords": [
     "dsh",
