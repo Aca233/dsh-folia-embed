@@ -231,6 +231,32 @@ window.__ModuleLoader__.load({
         && Math.abs((Number(a.durationMs) || 0) - (Number(b.durationMs) || 0)) < 1500
     }
 
+    /* 播放卡是否展开。轮询循环必须看得见它：收起后卡片只剩一颗 48px 的胶囊，
+       上面一个字都不显示，却还在每秒打一次 /player、1.5 秒一次 CDP 往返
+       （Host → WebSocket → 页面 evaluate，是本插件最贵的一条路径）。
+       收起时降到慢心跳，展开时立刻补一次。 */
+    let cardOpen = true
+    const cardOpenListeners = new Set()
+
+    const cardOpenStore = {
+      get: () => cardOpen,
+      subscribe: (listener) => {
+        cardOpenListeners.add(listener)
+        return () => cardOpenListeners.delete(listener)
+      },
+    }
+
+    function setCardOpen(next) {
+      if (cardOpen === next) return
+      cardOpen = next
+      for (const listener of cardOpenListeners) listener()
+      /* 展开时立刻补一次：收起期间只走慢心跳，最新一帧可能已经过期了。 */
+      if (next) {
+        void refreshPlayer()
+        void refreshPanel()
+      }
+    }
+
     function projectPosition() {
       if (anchor === null) return { positionMs: 0, durationMs: 0, playing: false }
       const duration = anchor.durationMs || 0
@@ -801,7 +827,8 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
            放大 1.06 只是为了盖住模糊在边缘采到透明像素，不模糊时一并去掉，
            省掉一次全屏合成。 */
         root.style.setProperty('--dfe-filter', state.blur > 0 ? `blur(${state.blur}px) saturate(1.1)` : 'none')
-        root.style.setProperty('--dfe-zoom', state.blur > 0 ? '1.06' : '1')
+        /* --dfe-zoom 写在 iframe 自己身上（下面按渲染分辨率算），这里不再往
+           <html> 上写一份——那份没有任何选择器读。 */
         root.style.setProperty('--dfe-panel', panelColor(state.panel, currentScheme()))
         root.style.setProperty('--dfe-glass', glassColor(state.panel))
         root.toggleAttribute('data-dfe-on', active)
@@ -864,7 +891,6 @@ html[data-dfe-on] #root div:has(>[data-shell-overlay]){background:var(--dfe-pane
         root.removeAttribute('data-dfe-on')
         root.style.removeProperty('--dfe-dim')
         root.style.removeProperty('--dfe-filter')
-        root.style.removeProperty('--dfe-zoom')
         root.style.removeProperty('--dfe-panel')
         layer?.remove()
         layer = null
@@ -1581,7 +1607,9 @@ function popIcon(scope, value) {
       const data = panel.data
 
       const [tab, setTab] = useState('cover')
-      const [open, setOpen] = useState(true)
+      /* 展开状态放在模块级：轮询循环要知道卡片是不是收起了。 */
+      const open = useSyncExternalStore(cardOpenStore.subscribe, cardOpenStore.get, cardOpenStore.get)
+      const setOpen = setCardOpen
       const [dragging, setDragging] = useState(false)
       const [coverBroken, setCoverBroken] = useState(false)
       const [busy, setBusy] = useState(false)
@@ -1695,7 +1723,15 @@ function popIcon(scope, value) {
       const title = song ? song.name : (track ? track.title : null)
       const artist = song ? song.artist : (track ? track.artist : null)
       const album = song ? song.album : (track ? track.album : null)
-      const coverUrl = (song && song.coverUrl) || (track && track.coverPath) || null
+      /* 封面优先走同源代理（track.coverPath，由 Host 侧 /folia-bg/cover 转发并
+         缓存）。song.coverUrl / track.coverUrl 是 p4.music.126.net 这类远程地址——
+         实测能显示，但那意味着把用户的 IP / UA 直接打到网易云 CDN，而且换歌时
+         每个客户端都要自己去拉一遍原图。代理只在拿不到 coverPath 时兜底
+         （例如只剩 SMTC 通道、面板快照不可用的时候）。 */
+      const coverUrl = (track && track.coverPath)
+        || (song && song.coverUrl)
+        || (track && track.coverUrl)
+        || null
       const durationMs = track === null ? (song ? song.durationMs : 0) : (Number(track.durationMs) || 0)
       const playing = track ? track.playerState === 'PLAYING' : !!(data && data.playing)
       const offline = panel.available === false
@@ -2358,15 +2394,28 @@ function popIcon(scope, value) {
     /* 播放控制卡第一次出现时把 Host 的 SSE 桥接起来，之后按 1 s 轮询曲目。
        轮询只在 Folia 运行时进行——没跑的时候没必要每秒打一次 health。
        面板快照（音量、主题、队列……）走自己的 1.5 s 节拍：它要跨一次 CDP
-       往返，比 SSE 贵得多，没必要跟着 1 s 的进度轮询跑。 */
+       往返，比 SSE 贵得多，没必要跟着 1 s 的进度轮询跑。
+
+       卡片收起后降到 5 秒一次的慢心跳：那时界面上只剩一颗 48px 的胶囊，
+       没有任何字段要更新，但完全停掉会让 SSE 闲置断开、展开瞬间空白。
+       展开时会立刻补一次，所以心跳慢不会让人看到旧数据。 */
+    const COLLAPSED_EVERY = 5
+
     function installPlayerRuntime() {
       refreshPlayer()
       void refreshPanel()
+      let playerTick = 0
+      let panelTick = 0
+      const active = () => settings.player && (status.running || !status.loaded)
       const timer = setInterval(() => {
-        if (settings.player && (status.running || !status.loaded)) refreshPlayer()
+        if (!active()) return
+        playerTick += 1
+        if (cardOpen || playerTick % COLLAPSED_EVERY === 0) refreshPlayer()
       }, PLAYER_POLL_MS)
       const panelTimer = setInterval(() => {
-        if (settings.player && (status.running || !status.loaded)) void refreshPanel()
+        if (!active()) return
+        panelTick += 1
+        if (cardOpen || panelTick % COLLAPSED_EVERY === 0) void refreshPanel()
       }, PANEL_POLL_MS)
       const stopLoop = startProgressLoop()
       return () => {
